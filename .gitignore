@@ -1,0 +1,9 @@
+Binaries/
+Config/
+Content/
+DerivedDataCache/
+Intermediate/
+Saved/
+*.suo
+*.db
+*.ipch
