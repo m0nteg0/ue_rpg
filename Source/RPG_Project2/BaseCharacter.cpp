@@ -14,6 +14,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 
+#include <ctime>
+
 // Sets default values
 ABaseCharacter::ABaseCharacter()
 {
@@ -51,6 +53,9 @@ void ABaseCharacter::MoveForward(float axis_value, float start_acc, float stop_a
 	if (fabs(axis_value) < min_value && fabs(ForwardScaleValue) < min_value)
 		return;
 
+	if (CharState == State_Idle)
+		StopAnimMontage();
+
 	FRotator rotation = GetActorRotation();
 	rotation = FRotator(0, rotation.Yaw, 0);
 	FVector forwardDir = FRotationMatrix(rotation).GetScaledAxis(EAxis::X);
@@ -78,6 +83,9 @@ void ABaseCharacter::MoveRight(float axis_value, float start_acc, float stop_acc
 	float min_value = 0.000001f;
 	if (fabs(axis_value) < min_value && fabs(RightScaleValue) < min_value)
 		return;
+
+	if (CharState == State_Idle)
+		StopAnimMontage();
 
 	FRotator rotation = GetActorRotation();
 	rotation = FRotator(0, rotation.Yaw, 0);
@@ -223,6 +231,28 @@ void ABaseCharacter::HandleActionFromChar(AActor* actor, FString action,
 	{
 		if (VisibleTargets.Find(target))
 		{
+			float angle_thresh = 70 * (PI / 180.0);
+
+			FVector targ_to_forward = FRotationMatrix(target->GetActorRotation()).GetScaledAxis(EAxis::X);
+			FVector targ_to_owner = GetActorLocation() - target->GetActorLocation();
+			targ_to_owner.Normalize();
+
+			float angle = FVector::DotProduct(targ_to_forward, targ_to_owner);
+			angle = FMath::Acos(angle);
+
+			if (angle > angle_thresh)
+				return;
+
+			//srand((unsigned)time(0));
+			int randomNumber = rand() % 100;
+
+			int chanceReact = ChanceReactIdle;
+			if (CharState == State_Attack)
+				chanceReact = ChanceReactInAttack;
+
+			if (randomNumber > chanceReact)
+				return;
+
 			AAIController* controller = Cast<AAIController>(GetController());
 			if (controller != nullptr)
 				controller->BrainComponent->GetBlackboardComponent()->SetValueAsBool("ReactToAction", true);
@@ -254,4 +284,55 @@ ABaseCharacter* ABaseCharacter::GetHandlingTarget()
 void ABaseCharacter::SetMoveSpeed(float value)
 {
 	GetCharacterMovement()->MaxWalkSpeed = value;
+}
+
+void ABaseCharacter::BaseAttack()
+{
+	if (AttackAnims.Num() == 0)
+		return;
+
+	if (CharState != State_Attack)
+	{
+		CharState = State_Attack;
+		UAnimMontage* anim = AttackAnims[ComboCounter];
+		PlayAnimMontage(anim);
+	}
+	else if (CharState == State_Attack && !ContinueCombo)
+	{
+		ContinueCombo = true;
+		ComboCounter++;
+	}
+	
+}
+
+void ABaseCharacter::NextComboAttack()
+{
+	CharState = State_Idle;
+	ContinueCombo = false;
+	BaseAttack();
+}
+
+void ABaseCharacter::EndAttack()
+{
+	CharState = State_Idle;
+	ContinueCombo = false;
+	ComboCounter = 0;
+}
+
+void ABaseCharacter::RandomAttack()
+{
+	if (AttackAnims.Num() == 0)
+		return;
+	int anim_idx = rand() % AttackAnims.Num();
+	UAnimMontage* anim = AttackAnims[anim_idx];
+	PlayAnimMontage(anim);
+}
+
+void ABaseCharacter::BaseBlock()
+{
+	if (BlockAnims.Num() == 0)
+		return;
+	int anim_idx = rand() % BlockAnims.Num();
+	UAnimMontage* anim = BlockAnims[anim_idx];
+	PlayAnimMontage(anim);
 }

@@ -40,6 +40,12 @@ void UActionBroadCastNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	for (AActor* overlappedActor : outActors) {
 		ABaseCharacter* overlappedChar = Cast<ABaseCharacter>(overlappedActor);
 		if (overlappedChar != nullptr)
-			overlappedChar->HandleActionFromChar(ownerChar, "Attack", true, true);
+		{
+			if (overlappedChar->Tags.Num() == 0 || ownerChar->Tags.Num() == 0)
+				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Character Has not Tag!!!"));
+
+			else if(overlappedChar->Tags[0] != ownerChar->Tags[0])
+				overlappedChar->HandleActionFromChar(ownerChar, "Attack", true, true);
+		}
 	}
 }
