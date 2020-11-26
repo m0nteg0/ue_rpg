@@ -4,7 +4,10 @@ Content/
 DerivedDataCache/
 Intermediate/
 Saved/
+Build/
 *.suo
 *.db
 *.ipch
 *.opendb
+*.exe
+*.dll

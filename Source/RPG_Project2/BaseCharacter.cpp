@@ -317,12 +317,19 @@ void ABaseCharacter::EndAttack()
 	CharState = State_Idle;
 	ContinueCombo = false;
 	ComboCounter = 0;
+
+	AAIController* controller = Cast<AAIController>(GetController());
+	if (controller != nullptr && ActorLookTarget != nullptr)
+		SetRotationSpeed(2.0f);
 }
 
 void ABaseCharacter::RandomAttack()
 {
 	if (AttackAnims.Num() == 0)
 		return;
+
+	SetRotationSpeed(1.0f);
+	CharState = State_Attack;
 	int anim_idx = rand() % AttackAnims.Num();
 	UAnimMontage* anim = AttackAnims[anim_idx];
 	PlayAnimMontage(anim);
@@ -335,4 +342,38 @@ void ABaseCharacter::BaseBlock()
 	int anim_idx = rand() % BlockAnims.Num();
 	UAnimMontage* anim = BlockAnims[anim_idx];
 	PlayAnimMontage(anim);
+}
+
+void ABaseCharacter::BaseDodge()
+{
+	if (DodgeAnims.Num() == 0 || CharState == State_Dodge)
+		return;
+
+	EndAttack();
+
+	if (RightScaleValue < -0.1)
+	{
+		CharState = State_Dodge;
+		UAnimMontage* anim = DodgeAnims[0];
+		PlayAnimMontage(anim);
+	}
+	else if (RightScaleValue > 0.1)
+	{
+		if (DodgeAnims.Num() >= 2)
+		{
+			CharState = State_Dodge;
+			UAnimMontage* anim = DodgeAnims[1];
+			PlayAnimMontage(anim);
+		}
+	}
+
+	if (ForwardScaleValue < -0.1 || fabs(RightScaleValue) < 0.1)
+	{
+		if (DodgeAnims.Num() >= 3)
+		{
+			CharState = State_Dodge;
+			UAnimMontage* anim = DodgeAnims[2];
+			PlayAnimMontage(anim);
+		}
+	}
 }

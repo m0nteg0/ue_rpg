@@ -13,7 +13,7 @@ class RPG_PROJECT2_API ABaseCharacter : public ACharacter
 
 public:
 	enum CharacterState {
-		State_Idle, State_Attack, State_Block
+		State_Idle, State_Attack, State_Block, State_Dodge
 	};
 	// Sets default values for this character's properties
 	ABaseCharacter();
@@ -85,14 +85,16 @@ public:
 	float AttackRange = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	float ChanceReactIdle = 60.0f;
+	float ChanceReactIdle = 70.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	float ChanceReactInAttack = 30.0f;
+	float ChanceReactInAttack = 20.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TArray<UAnimMontage*> AttackAnims;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TArray<UAnimMontage*> BlockAnims;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TArray<UAnimMontage*> DodgeAnims;
 
 	UFUNCTION(BlueprintCallable)
 	void BaseAttack();
@@ -100,6 +102,8 @@ public:
 	void RandomAttack();
 	UFUNCTION(BlueprintCallable)
 	void BaseBlock();
+	UFUNCTION(BlueprintCallable)
+	void BaseDodge();
 
 	void NextComboAttack();
 	void EndAttack();
