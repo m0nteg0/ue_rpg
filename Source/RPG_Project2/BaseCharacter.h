@@ -13,7 +13,7 @@ class RPG_PROJECT2_API ABaseCharacter : public ACharacter
 
 public:
 	enum CharacterState {
-		State_Idle, State_Attack, State_Block, State_Dodge
+		State_Idle, State_Attack, State_Block, State_Dodge, State_Hit
 	};
 	// Sets default values for this character's properties
 	ABaseCharacter();
@@ -85,19 +85,29 @@ public:
 	float AttackRange = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	float ChanceReactIdle = 70.0f;
+	float ChanceReactIdle = 90.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float ChanceReactInAttack = 20.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	int MaxTakenHit = 2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	int BlockedAttack2CAttack = 2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TArray<UAnimMontage*> AttackAnims;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TArray<UAnimMontage*> BlockAnims;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TArray<UAnimMontage*> ContrAttacksAnims;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TArray<UAnimMontage*> DodgeAnims;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TArray<UAnimMontage*> HitAnims;
 
 	UFUNCTION(BlueprintCallable)
 	void BaseAttack();
+	UFUNCTION(BlueprintCallable)
+	void BaseContrAttack();
 	UFUNCTION(BlueprintCallable)
 	void RandomAttack();
 	UFUNCTION(BlueprintCallable)
@@ -105,10 +115,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void BaseDodge();
 
+	UFUNCTION(BlueprintCallable)
+	int GetBlockedAttack() { return AttackBlocked; }
+
 	void NextComboAttack();
 	void EndAttack();
 	int getComboCounter() { return ComboCounter; }
 	int IsContinueCombo() { return ContinueCombo; }
+
+	void TakeBaseDamage(int damage);
 	//[===COMBAT===]
 
 	UFUNCTION(BlueprintCallable)
@@ -145,4 +160,7 @@ private:
 
 	bool ContinueCombo = false;
 	int	 ComboCounter = 0;
+	int	 MissedReactCounter = 0;
+	int  CurrentTakenHit = 0;
+	int  AttackBlocked = 0;
 };

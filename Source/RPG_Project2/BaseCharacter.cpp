@@ -28,7 +28,7 @@ ABaseCharacter::ABaseCharacter()
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	srand((unsigned)time(0));
 }
 
 // Called every frame
@@ -51,6 +51,9 @@ void ABaseCharacter::MoveForward(float axis_value, float start_acc, float stop_a
 {
 	float min_value = 0.000001f;
 	if (fabs(axis_value) < min_value && fabs(ForwardScaleValue) < min_value)
+		return;
+
+	if (CharState == State_Hit)
 		return;
 
 	if (CharState == State_Idle)
@@ -82,6 +85,9 @@ void ABaseCharacter::MoveRight(float axis_value, float start_acc, float stop_acc
 {
 	float min_value = 0.000001f;
 	if (fabs(axis_value) < min_value && fabs(RightScaleValue) < min_value)
+		return;
+
+	if (CharState == State_Hit)
 		return;
 
 	if (CharState == State_Idle)
@@ -250,17 +256,26 @@ void ABaseCharacter::HandleActionFromChar(AActor* actor, FString action,
 			if (CharState == State_Attack)
 				chanceReact = ChanceReactInAttack;
 
-			if (randomNumber > chanceReact)
+			/*GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::FromInt(randomNumber));
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::FromInt(chanceReact));*/
+
+			if (MissedReactCounter <= (150 / chanceReact) && randomNumber > chanceReact)
+			{
+				MissedReactCounter++;
 				return;
+			}
+
+			MissedReactCounter = 0;
 
 			AAIController* controller = Cast<AAIController>(GetController());
 			if (controller != nullptr)
 				controller->BrainComponent->GetBlackboardComponent()->SetValueAsBool("ReactToAction", true);
 			HandlingTarget = target;
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("React to action! Visible"));
+			//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("React to action! Visible"));
 		}
 	}
 }
+
 
 void ABaseCharacter::AddVisibleTarget(AActor* actor)
 {
@@ -286,10 +301,38 @@ void ABaseCharacter::SetMoveSpeed(float value)
 	GetCharacterMovement()->MaxWalkSpeed = value;
 }
 
+void ABaseCharacter::TakeBaseDamage(int damage)
+{
+	if (HitAnims.Num() == 0 || CharState == State_Dodge)
+		return;
+
+	if (CharState == State_Block)
+	{
+		AttackBlocked++;
+		return;
+	}
+
+	CharState = State_Hit;
+	CurrentTakenHit++;
+	AttackBlocked++;
+
+
+	int anim_idx = rand() % HitAnims.Num();
+	UAnimMontage* anim = HitAnims[anim_idx];
+
+	PlayAnimMontage(anim);
+
+	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Taked Damage! "));
+}
+
 void ABaseCharacter::BaseAttack()
 {
-	if (AttackAnims.Num() == 0)
+	if (AttackAnims.Num() == 0 || CharState == State_Hit)
 		return;
+
+	AttackBlocked = 0;
+	CurrentTakenHit = 0;
+
 
 	if (CharState != State_Attack)
 	{
@@ -301,8 +344,20 @@ void ABaseCharacter::BaseAttack()
 	{
 		ContinueCombo = true;
 		ComboCounter++;
-	}
-	
+	}	
+}
+
+void ABaseCharacter::BaseContrAttack()
+{
+	if (ContrAttacksAnims.Num() == 0 || CharState == State_Hit)
+		return;
+
+	AttackBlocked = 0;
+	CurrentTakenHit = 0;
+
+	int anim_idx = rand() % ContrAttacksAnims.Num();
+	UAnimMontage* anim = ContrAttacksAnims[anim_idx];
+	PlayAnimMontage(anim);
 }
 
 void ABaseCharacter::NextComboAttack()
@@ -325,7 +380,7 @@ void ABaseCharacter::EndAttack()
 
 void ABaseCharacter::RandomAttack()
 {
-	if (AttackAnims.Num() == 0)
+	if (AttackAnims.Num() == 0 || CharState == State_Hit)
 		return;
 
 	SetRotationSpeed(1.0f);
@@ -337,8 +392,18 @@ void ABaseCharacter::RandomAttack()
 
 void ABaseCharacter::BaseBlock()
 {
-	if (BlockAnims.Num() == 0)
+	if (BlockAnims.Num() == 0 || CharState == State_Block)
 		return;
+
+	if (CharState == State_Hit)
+	{
+		if (CurrentTakenHit < MaxTakenHit)
+			return;
+		else
+			CurrentTakenHit = 0;
+	}
+
+	CharState = State_Block;
 	int anim_idx = rand() % BlockAnims.Num();
 	UAnimMontage* anim = BlockAnims[anim_idx];
 	PlayAnimMontage(anim);
@@ -348,6 +413,14 @@ void ABaseCharacter::BaseDodge()
 {
 	if (DodgeAnims.Num() == 0 || CharState == State_Dodge)
 		return;
+
+	if (CharState == State_Hit)
+	{
+		if (CurrentTakenHit < MaxTakenHit)
+			return;
+		else
+			CurrentTakenHit = 0;
+	}
 
 	EndAttack();
 
